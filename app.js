@@ -93,6 +93,22 @@ io.sockets.on('connection', function (socket) {
     io.sockets.in(response.room).emit('updated_room_information', response);
   });
 
+  socket.on('server_prepare_everyone', function (response) {
+    io.sockets.in(response.room).emit('game_setup', response);
+  });
+
+  socket.on('game_is_ready', function (response) {
+    io.sockets.in(response.room).emit('game_begin', response);
+
+  socket.on('got_hit', function (response) {
+    io.sockets.in(response.room).emit('hit_data', response);
+  });
+
+  socket.on('game_finished', function (playerNumber) {
+    io.sockets.in(response.room).emit('game_over', response);
+  });
+  });
+
 });
 
 
