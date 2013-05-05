@@ -111,7 +111,7 @@ var roomList = (function() {
     } else {
       for(var i=0; i<rooms.length; i++){
         if (rooms[i].name==roomName) {
-          rooms[i].players.push({name:playerName, number: rooms[i].currentNumber});
+          rooms[i].players.push({name:playerName, number: rooms[i].currentNumber, ready: ''});
           rooms[i].currentNumber+=2;
           return true;
         }
@@ -181,6 +181,40 @@ var roomList = (function() {
     }
   };
 
+  var ready = function (roomName, playerName) {
+    if (!roomName || !playerName) {
+      return false;
+    } else {
+      for (var i = 0; i < rooms.length; i++) {
+          if (rooms[i].name == roomName) {
+              for (var j = 0; j < rooms[i].players.length; j++) {
+                  if (rooms[i].players[j].name == playerName) {
+                    rooms[i].players[j].ready = 'READY';
+                    return true;
+                  }
+              }
+          }
+      }
+
+      return false;
+    }
+  };
+
+  var start = function (roomName) {
+    if (!roomName) {
+        return false;
+    } else {
+      for (var i = 0; i <rooms.length; i++) {
+          if (rooms[i].name == roomName) {
+              rooms[i].started = true;
+              return true;
+          }
+      }
+
+      return false;
+    }
+  };
+
   return {
     abandon: abandon,
     available: available,
@@ -188,6 +222,8 @@ var roomList = (function() {
     information: information,
     getList: getList,
     join: join,
+    start: start,
+    ready: ready,
     getPlayers: getPlayers,
     leave: leave
   };
@@ -282,8 +318,15 @@ io.sockets.on('connection', function (socket) {
 
   });
 
+  socket.on('lobby:informationReady', function () {
+    roomList.start(room);
+    io.sockets.in(room).emit('lobby:sendInformation');
+  });
 
-
+  socket.on('lobby:setReady', function () {
+    roomList.ready(room, name);
+    io.sockets.in(room).emit('lobby:playerChange', roomList.getPlayers(room));
+  });
 
 
 
