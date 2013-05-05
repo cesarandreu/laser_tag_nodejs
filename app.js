@@ -1,45 +1,4 @@
 
-/**
- * Module dependencies.
- */
-
-/*
-var express = require('express');
-var http = require('http');
-var path = require('path');
-var io = require('socket.io');
-
-var app = express();
-*/
-
-/*
-
-app.configure(function(){
-  app.set('port', process.env.PORT || 3000);
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
-  app.use(express.favicon());
-  app.use(express.logger('dev'));
-  app.use(express.bodyParser());
-  app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(path.join(__dirname, 'public')));
-});
-
-app.configure('development', function(){
-  app.use(express.errorHandler());
-});
-
-app.get('/', function(req, res) {
-    
-});
-
-
-http.createServer(app).listen(app.get('port'), function(){
-  console.log("Express server listening on port " + app.get('port'));
-});
-
-*/
 
 var app = require('express')();
 var server = require('http').createServer(app);
@@ -47,67 +6,136 @@ var io = require('socket.io').listen(server);
 
 server.listen(3000);
 
+var userNames = (function () {
+  var names = {};
+
+  var claim = function (name) {
+    if (!name || userNames[name]) {
+      return false;
+    } else {
+      userNames[name] = true;
+      return true;
+    }
+  };
+
+  // find the lowest unused "guest" name and claim it
+  var getGuestName = function () {
+    var name,
+      nextUserId = 1;
+
+    do {
+      name = 'Guest ' + nextUserId;
+      nextUserId += 1;
+    } while (!claim(name));
+
+    return name;
+  };
+
+  // serialize claimed names as an array
+  var get = function () {
+    var res = [];
+    for (var user in userNames) {
+      res.push(user);
+    }
+
+    return res;
+  };
+
+  var free = function (name) {
+    if (userNames[name]) {
+      delete userNames[name];
+    }
+  };
+
+  return {
+    claim: claim,
+    free: free,
+    get: get,
+    getGuestName: getGuestName
+  };
+}());
+
+/*
+var roomList = (function () {
+  var rooms = {};
+
+  var create = function(name, player) {
+      if (!name || roomList[name].status){
+        return false;
+      } else {
+        roomList[name] = {status: true, creator: player, playerList: [player]};
+        return true;
+      }
+  };
+
+  var join = function(name, player) {
+    if (!name || !roomList[name].status) {
+      return {};
+    } else {
+      roomList[name].playerList.push(player);
+      return roomList[name];
+    }
+  };
+
+  var leave = function (name, player) {
+
+  };
+
+
+}());
+*/
 
 /*
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
 });
 */
- var gameList = [];
- var userChannel = [];
+
+
+var roomList = (function() {
+  var rooms = {};
+
+
+}());
+
 io.sockets.on('connection', function (socket) {
 
-  socket.on('set_name', function (response) {
-    socket.set('name', response, function() {
-        socket.emit('set_name_response');
-    });
-  });
+  var name = userNames.getGuestName();
 
-  socket.on('create_game', function (response) {
-    gameList.push(response);
-    socket.join(response.name);
-    socket.emit('create_game_response', response);
-  });
+  //Initializes the user, sends them a name and the list of users
+  socket.emit('init', {name: name, users:userNames.get()});
 
-  socket.on('game_list', function () {
-    var list = [];
-    for(var i=0; i<gameList.length; i++){
-      list[i] = gameList[i].name;
+  //Tell everyone a new user joined and tell them his name
+  socket.broadcast.emit('user:join', {name: name});
+
+  //Validate a user's name change, and broadast it on success
+  socket.on('change:name', function (data, fn) {
+    if (userNames.claim(data.name)) {
+      var oldName = name;
+      userNames.free(oldName);
+
+      name = data.name;
+
+      socket.broadcast.emit('change:name', {
+        oldName: oldName,
+        newName: name
+      });
+
+      fn(true);
+    } else {
+      fn(false);
     }
-    socket.emit('game_list_response', list);
-
-
   });
 
-  socket.on('join_game', function (response) {
-    socket.join(response.room);
-    socket.emit('creator_user_joined', {room: response.roomName, player: response.playerName});
-    socket.emit('join_game_response', {room: response.roomName, player: response.playerName});
+  socket.on('disconnect', function () {
+    socket.broadcast.emit('user:left', {
+      name: name
+    });
+    userNames.free(name);
   });
 
-  socket.on('get_updated_information', function() {
-    socket.emit('asking_for_information');
-  });
 
-  socket.on('send_room_information', function (response) {
-    io.sockets.in(response.room).emit('updated_room_information', response);
-  });
 
-  socket.on('server_prepare_everyone', function (response) {
-    io.sockets.in(response.room).emit('game_setup', response);
-  });
-
-  socket.on('game_is_ready', function (response) {
-    io.sockets.in(response.room).emit('game_begin', response);
-
-  socket.on('got_hit', function (response) {
-    io.sockets.in(response.room).emit('hit_data', response);
-  });
-
-  socket.on('game_finished', function (playerNumber) {
-    io.sockets.in(response.room).emit('game_over', response);
-  });
-  });
 
 });
 
