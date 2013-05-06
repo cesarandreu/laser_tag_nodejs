@@ -293,7 +293,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('lobby:hostLeft', function (roomName) {
     roomList.abandon(roomName);
     socket.leave(roomName);
-    io.sockets.in(roomName).emit('lobby:abandon');
+    io.sockets['in'](roomName).emit('lobby:abandon');
     room = '';
   });
 
@@ -301,7 +301,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('lobby:leave', function () {
     roomList.leave(room, name);
     socket.leave(room);
-    io.sockets.in(room).emit('lobby:playerChange', roomList.getPlayers(room));
+    io.sockets['in'](room).emit('lobby:playerChange', roomList.getPlayers(room));
     room = '';
   });
 
@@ -316,25 +316,25 @@ io.sockets.on('connection', function (socket) {
     socket.join(roomName);
     roomList.join(room, name);
     var gameInfo = roomList.information(room);
-    io.sockets.in(room).emit('lobby:playerChange', roomList.getPlayers(room));
+    io.sockets['in'](room).emit('lobby:playerChange', roomList.getPlayers(room));
     fn(gameInfo);
 
   });
 
   socket.on('lobby:informationReady', function () {
     roomList.start(room);
-    io.sockets.in(room).emit('lobby:sendInformation');
+    io.sockets['in'](room).emit('lobby:sendInformation');
   });
 
   socket.on('lobby:setReady', function () {
     roomList.ready(room, name);
-    io.sockets.in(room).emit('lobby:playerChange', roomList.getPlayers(room));
+    io.sockets['in'](room).emit('lobby:playerChange', roomList.getPlayers(room));
   });
 
 
   //Game logic here:
   socket.on('game:sendStart', function (data) {
-    io.sockets.in(room).emit('game:start');
+    io.sockets['in'](room).emit('game:start');
 
     if (data.game.type == 'A') {
       deathmatch.start(room);
@@ -344,7 +344,7 @@ io.sockets.on('connection', function (socket) {
       setTimeout(function(room) {
         var result = timed_deathmatch.getScores(room);
         var topPlayer = getTop(result);
-        io.sockets.in(room).emit('game:over', topPlayer);
+        io.sockets['in'](room).emit('game:over', topPlayer);
         timed_deathmatch.end(room);
       }, data.game.limit * 60 * 1000, room);
 
@@ -362,11 +362,11 @@ io.sockets.on('connection', function (socket) {
 
         result = deathmatch.getScores(room);
 
-        io.sockets.in(room).emit('game:score', result);
+        io.sockets['in'](room).emit('game:score', result);
 
         var scoreResult = checkScore(result, data.limit);
         if (scoreResult.score >= data.limit) {
-            io.sockets.in(room).emit('game:over', scoreResult);
+            io.sockets['in'](room).emit('game:over', scoreResult);
             deathmatch.end(room);
         }
       } else {
@@ -375,7 +375,7 @@ io.sockets.on('connection', function (socket) {
 
         result = timed_deathmatch.getScores(room);
 
-        io.sockets.in(room).emit('game:score', result);
+        io.sockets['in'](room).emit('game:score', result);
 
       }
 
