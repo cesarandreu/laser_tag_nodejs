@@ -171,6 +171,9 @@ var roomList = (function() {
           for (var j=0; j<rooms[i].players.length; j++){
             if (rooms[i].players[j].name == playerName) {
               rooms[i].players.splice(j, 1);
+              if (rooms[i].players.length === 0) {
+                roomList.abandon(roomName);
+              }
               return true;
             }
           }
@@ -329,12 +332,232 @@ io.sockets.on('connection', function (socket) {
   });
 
 
+  //Game logic here:
+  socket.on('game:sendStart', function (data) {
+    io.sockets.in(room).emit('game:start');
+
+    if (data.game.type == 'A') {
+      deathmatch.start(room);
+    } else {
+      timed_deathmatch.start(room);
+
+      setTimeout(function(room) {
+        var result = timed_deathmatch.getScores(room);
+        var topPlayer = getTop(result);
+        io.sockets.in(room).emit('game:over', topPlayer);
+        timed_deathmatch.end(room);
+      }, data.game.limit * 60 * 1000, room);
+
+    }
+
+  });
+
+
+  socket.on('game:hit', function (data) {
+
+      var result;
+
+      if (data.type == 'A') {
+        deathmatch.hit(room, data.hitData);
+
+        result = deathmatch.getScores(room);
+
+        io.sockets.in(room).emit('game:score', result);
+
+        var scoreResult = checkScore(result, data.limit);
+        if (scoreResult.score >= data.limit) {
+            io.sockets.in(room).emit('game:over', scoreResult);
+            deathmatch.end(room);
+        }
+      } else {
+
+        timed_deathmatch.hit(room, data.hitData);
+
+        result = timed_deathmatch.getScores(room);
+
+        io.sockets.in(room).emit('game:score', result);
+
+      }
+
+  });
+
+ function checkScore(players, limit) {
+    for (var i = 0; i < players.length; i++) {
+        if (players[i].score >= limit) {
+            return players[i];
+        }
+    }
+    return {name: '', score: 0, number: 0};
+  }
+
+  function getTop (players) {
+    var top = 0;
+    var player = {};
+    for (var i = 0; i < players.length; i++) {
+        if (players[i].score >= top) {
+          top = players[i].score;
+          player = players[i];
+        }
+    }
+    return player;
+  }
+
+
+
+  /*
+  function gameTypeB (limit, room) {
+    gameType = 'B';
+    setTimeout(function(room) {
+      io.sockets.in(room).emit('game:over');
+    }, limit*60*1000, room);
+  }
+  */
 
 });
 
+var timed_deathmatch = (function() {
+  var matches = [];
+
+  var start = function (roomName) {
+    var gameInfo = roomList.information(roomName);
+
+    for (var i = 0; i < gameInfo.players.length; i++) {
+        gameInfo.players[i].score = 0;
+    }
+
+    matches.push({
+      name: gameInfo.name,
+      limit: gameInfo.limit,
+      players: gameInfo.players,
+      hit: []
+    });
+
+  };
+
+  var hit = function(roomName, hitInfo) {
+    for (var i = 0; i < matches.length; i++) {
+        if (matches[i].name == roomName) {
+            matches[i].hit.push(hitInfo);
+
+            for (var j=0; j < matches[i].players.length; j++) {
+              if (hitInfo.id == matches[i].players[j].number) {
+                matches[i].players[j].score++;
+                break;
+              }
+            }
+            break;
+        }
+    }
+  };
+
+  var getScores = function(roomName) {
+    var res = [];
+    for (var i = 0; i < matches.length; i++) {
+        if (matches[i].name == roomName) {
+            for (var j = 0; j < matches[i].players.length; j++) {
+                res.push(matches[i].players[j]);
+            }
+            break;
+        }
+    }
+    return res;
+  };
+
+  var end = function(roomName) {
+    for (var i = 0; i < matches.length; i++) {
+        if (matches[i].name == roomName) {
+            matches.splice(i, 1);
+            break;
+        }
+    }
+  };
+
+  return {
+    start: start,
+    hit: hit,
+    getScores: getScores,
+    end: end
+  };
+
+}());
+
+var deathmatch = (function() {
+  var deathmatches = [];
+
+  var start = function(roomName) {
+    var gameInfo = roomList.information(roomName);
+
+    for (var i = 0; i < gameInfo.players.length; i++) {
+        gameInfo.players[i].score = 0;
+    }
+
+    deathmatches.push({
+      name: gameInfo.name,
+      limit: gameInfo.limit,
+      players: gameInfo.players,
+      hit: []
+    });
+
+  };
+
+  var hit = function(roomName, hitInfo) {
+    for (var i = 0; i < deathmatches.length; i++) {
+        if (deathmatches[i].name == roomName) {
+            deathmatches[i].hit.push(hitInfo);
+
+            for (var j=0; j < deathmatches[i].players.length; j++) {
+              if (hitInfo.id == deathmatches[i].players[j].number) {
+                deathmatches[i].players[j].score++;
+                break;
+              }
+            }
+            break;
+        }
+    }
+  };
+
+  var getScores = function(roomName) {
+    var res = [];
+    for (var i = 0; i < deathmatches.length; i++) {
+        if (deathmatches[i].name == roomName) {
+            for (var j = 0; j < deathmatches[i].players.length; j++) {
+                res.push(deathmatches[i].players[j]);
+            }
+            break;
+        }
+    }
+    return res;
+  };
+
+  var end = function(roomName) {
+    for (var i = 0; i < deathmatches.length; i++) {
+        if (deathmatches[i].name == roomName) {
+            deathmatches.splice(i, 1);
+            break;
+        }
+    }
+  };
+
+  return {
+    start: start,
+    hit: hit,
+    getScores: getScores,
+    end: end
+  };
+
+}());
 
 
+/*
+var gameList = (function() {
+  var games = [];
+
+  var start = function(game, lobby) {
+    if ( game.type == 'A' ) {
+    } else {
+    }
+  };
 
 
-
-
+}());
+*/
