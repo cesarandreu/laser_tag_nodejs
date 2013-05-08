@@ -372,6 +372,8 @@ io.sockets.on('connection', function (socket) {
 
       var result;
 
+      console.log('HIT RECEIVED, ROOM IS: ' + room);
+
       if (data.type == 'A') {
         deathmatch.hit(room, data.hitData);
 
@@ -522,7 +524,7 @@ var deathmatch = (function() {
 
             for (var j=0; j < deathmatches[i].players.length; j++) {
               if (hitInfo.id == deathmatches[i].players[j].number) {
-                deathmatches[i].players[j].score++;
+                deathmatches[i].players[j].score = (deathmatches[i].players[j].score + 1);
                 break;
               }
             }
