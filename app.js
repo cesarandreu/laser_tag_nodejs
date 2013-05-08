@@ -276,7 +276,7 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('disconnect', function () {
 
-    console.log('Name:' + name + ', in room: ' + room + ' has left.');
+    console.log('Name: ' + name + ', in room: ' + room + ' has left.');
 
     //Makes the player leave whatever room he was in.
     roomList.leave(room, name);
@@ -369,6 +369,12 @@ io.sockets.on('connection', function (socket) {
 
 
   socket.on('game:hit', function (data) {
+
+      //I should probably add some sort of check to deathmatch and timed_deathmatch,
+      //so that it checks if the room exists before adding the hit
+      //and have it not send an empty array as result.
+      //Actually, I might just wanna do an if ( result.length === 0 ) { do nothing }
+      //But I don't wanna fuck with working code. 
 
       var result;
 
