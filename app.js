@@ -6,6 +6,13 @@ var io = require('socket.io').listen(server);
 
 server.listen(process.env.PORT || 3000);
 
+//Since I'm using appfog and they don't support websockets,
+//And since Android Web View doesn't support websockets,
+//And since I don't wanna change my stuff to use a plugin.
+//This sets it to use polling by default.
+io.set('transports', ['xhr-polling']);
+
+
 var userNames = (function () {
   var names = {};
 
@@ -125,7 +132,10 @@ var roomList = (function() {
   var getList = function () {
     var res = [];
     for(var i=0; i<rooms.length; i++){
-      if (rooms[i].players.length!==0 && rooms[i].started!==true) {
+      if(rooms[i].players.length===0){
+        //Abandons the room because it has no players.
+        roomList.abandon(rooms[i].name);
+      } else if (rooms[i].players.length!==0 && rooms[i].started!==true) {
         res.push(rooms[i].name);
       }
     }
@@ -265,13 +275,18 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('disconnect', function () {
+
+    console.log('Name:' + name + ', in room: ' + room + ' has left.');
+
+    //Makes the player leave whatever room he was in.
+    roomList.leave(room, name);
+
     socket.broadcast.emit('user:left', {
       name: name
     });
     userNames.free(name);
 
     socket.leave(room);
-
 
   });
 
