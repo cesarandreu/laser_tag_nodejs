@@ -337,13 +337,21 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('lobby:informationReady', function () {
-    roomList.start(room);
-    io.sockets['in'](room).emit('lobby:sendInformation');
+    if (!room || !name) {
+      io.sockets.emit('IMPOSSIBLE', {message: 'Room or Name is empty in lobby:informationReady'});
+    } else {
+      roomList.start(room);
+      io.sockets['in'](room).emit('lobby:sendInformation');
+    }
   });
 
   socket.on('lobby:setReady', function () {
-    roomList.ready(room, name);
-    io.sockets['in'](room).emit('lobby:playerChange', roomList.getPlayers(room));
+    if (!room || !name) {
+      io.sockets.emit('IMPOSSIBLE', {message: 'Room or Name is empty in lobby:setReady'});
+    } else {
+      roomList.ready(room, name);
+      io.sockets['in'](room).emit('lobby:playerChange', roomList.getPlayers(room));
+    }
   });
 
 
@@ -397,13 +405,14 @@ io.sockets.on('connection', function (socket) {
           if (deathmatch.exists(room)) {
             io.sockets['in'](room).emit('game:over', scoreResult);
           } else {
+            io.sockets.emit('IMPOSSIBLE', {message: 'Room does not exist.'});
             console.log('ROOM DOES NOT EXIST.');
           }
 
             deathmatch.end(room);
 
         }
-      } else {
+      } else if (data.type == 'B') {
 
         timed_deathmatch.hit(room, data.hitData);
 
@@ -415,6 +424,8 @@ io.sockets.on('connection', function (socket) {
             io.sockets['in'](room).emit('game:score', result);
         }
 
+      } else {
+        io.sockets.emit('IMPOSSIBLE', {message: 'Game type was not A or B.'});
       }
 
   });
