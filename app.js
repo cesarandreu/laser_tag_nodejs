@@ -385,12 +385,23 @@ io.sockets.on('connection', function (socket) {
 
         result = deathmatch.getScores(room);
 
-        io.sockets['in'](room).emit('game:score', result);
+        if (result.length === 0) {
+          console.log('LENGTH OF RESULT IS ZERO SO NOT SENDING ANYTHING.');
+        } else {
+          io.sockets['in'](room).emit('game:score', result);
+        }
 
         var scoreResult = checkScore(result, data.limit);
         if (scoreResult.score >= data.limit) {
+
+          if (deathmatch.exists(room)) {
             io.sockets['in'](room).emit('game:over', scoreResult);
+          } else {
+            console.log('ROOM DOES NOT EXIST.');
+          }
+
             deathmatch.end(room);
+
         }
       } else {
 
@@ -398,7 +409,11 @@ io.sockets.on('connection', function (socket) {
 
         result = timed_deathmatch.getScores(room);
 
-        io.sockets['in'](room).emit('game:score', result);
+        if (result.length === 0) {
+            console.log('LENGTH OF RESULT IS ZERO SO NOT SENDING ANYTHING.');
+        } else {
+            io.sockets['in'](room).emit('game:score', result);
+        }
 
       }
 
@@ -440,6 +455,17 @@ io.sockets.on('connection', function (socket) {
 
 var timed_deathmatch = (function() {
   var matches = [];
+
+  var exists = function(roomName) {
+    for (var i = 0; i < matches.length; i++) {
+        if (matches[i].name == roomName) {
+            return true;
+        }
+    }
+
+    return false;
+
+  };
 
   var start = function (roomName) {
     var gameInfo = roomList.information(roomName);
@@ -499,7 +525,8 @@ var timed_deathmatch = (function() {
     start: start,
     hit: hit,
     getScores: getScores,
-    end: end
+    end: end,
+    exists: exists
   };
 
 }());
@@ -507,7 +534,18 @@ var timed_deathmatch = (function() {
 var deathmatch = (function() {
   var deathmatches = [];
 
-  var start = function(roomName) {
+  var exists = function (roomName) {
+    for (var i = 0; i < deathmatches.length; i++) {
+        if (deathmatches[i].name == roomName) {
+            return true;
+        }
+    }
+
+    return false;
+
+  };
+
+  var start = function (roomName) {
     var gameInfo = roomList.information(roomName);
 
     for (var i = 0; i < gameInfo.players.length; i++) {
@@ -523,7 +561,7 @@ var deathmatch = (function() {
 
   };
 
-  var hit = function(roomName, hitInfo) {
+  var hit = function (roomName, hitInfo) {
     for (var i = 0; i < deathmatches.length; i++) {
         if (deathmatches[i].name == roomName) {
             deathmatches[i].hit.push(hitInfo);
@@ -539,7 +577,7 @@ var deathmatch = (function() {
     }
   };
 
-  var getScores = function(roomName) {
+  var getScores = function (roomName) {
     var res = [];
     for (var i = 0; i < deathmatches.length; i++) {
         if (deathmatches[i].name == roomName) {
@@ -552,7 +590,7 @@ var deathmatch = (function() {
     return res;
   };
 
-  var end = function(roomName) {
+  var end = function (roomName) {
     for (var i = 0; i < deathmatches.length; i++) {
         if (deathmatches[i].name == roomName) {
             deathmatches.splice(i, 1);
@@ -565,7 +603,8 @@ var deathmatch = (function() {
     start: start,
     hit: hit,
     getScores: getScores,
-    end: end
+    end: end,
+    exists: exists
   };
 
 }());
