@@ -1,6 +1,7 @@
 {
   "name": "LaserTagRevolution-Server",
-  "version": "0.8",
+  "version": "1.0",
+  "author":"César Andreu <cesarandreu@gmail.com>",
   "private": true,
   "scripts": {
     "start": "node app"
