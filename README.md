@@ -24,6 +24,10 @@ The project has three components:
 
 * [ __Smartphone application__ (Android)](https://github.com/cesarandreu/laser_tag_android)
 
+Videos
+
+* [System demonstration](http://www.youtube.com/watch?v=hs2FppfotFk)
+
 ---
 
 ###Server
